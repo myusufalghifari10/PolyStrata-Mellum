@@ -9,6 +9,7 @@
 #include "kolibri1.hpp"
 #include "lfm2moe.hpp"
 #include "flint.hpp"
+#include "mellum.hpp"
 #include "inkling2.hpp" // its kernels: inkling2.cu, and metal/src/poly/inkling.cpp on Metal
 #if !defined(STRATA_GPU_METAL)
 #include "laguna.hpp"   // CUDA and HIP: its YaRN turn and softplus gate have no Metal kernels yet
@@ -1854,8 +1855,8 @@ std::unique_ptr<Engine> Engine::open(const Options& o) {
     // Clover is a qwen35moe model trained to also guess a block of tokens at once (Qwen35)
     const bool qwen35 = name == "qwen35moe" || name == "clover_moe";
     if (o.kv_format == KvFmt::kQ8_0 && !qwen35 && name != "kolibri1" && name != "flint" && name != "lfm2moe" &&
-        name != "laguna")
-        throw std::runtime_error("--kv q8_0 is supported for qwen35moe, kolibri1, flint, lfm2moe and laguna models in "
+        name != "laguna" && name != "mellum")
+        throw std::runtime_error("--kv q8_0 is supported for qwen35moe, kolibri1, flint, lfm2moe, laguna and mellum models in "
                                  "v1; this is a '" + name + "' model");
     // q4_0 is Qwen35's (the other architectures read a q8_0 cache, not this one, and would run fp16 without a word)
     if (o.kv_format == KvFmt::kQ4_0 && !qwen35)
@@ -1892,6 +1893,7 @@ std::unique_ptr<Engine> Engine::open(const Options& o) {
         if (name == "deepseek4") return std::make_unique<DeepSeek4>();
         if (name == "lfm2moe") return std::make_unique<Lfm2Moe>();
         if (name == "flint") return std::make_unique<Flint>();
+        if (name == "mellum") return std::make_unique<Mellum>();
         if (name == "kolibri1") return std::make_unique<Kolibri1>();
         if (name == "inkling2_loop") return std::make_unique<Inkling2>();
 #if !defined(STRATA_GPU_METAL)

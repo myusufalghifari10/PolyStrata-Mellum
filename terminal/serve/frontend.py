@@ -2052,6 +2052,10 @@ class OutputParser:
         # (an empty one, after a tool's answer): it is read either way
         self.opening = bool(self.think_open) and not opened
         self.state = "reasoning" if thinking and (opened or not self.think_open) else "content"
+        # Mellum 2.1 / Kolibri (call_format="function"): prompt ends at the turn opener without <think>, so the
+        # model may emit a leading <think> (and newline) itself even though Qwen-style prompts already opened it.
+        self._lead_think_open = thinking and not opened and call_format == "function"
+        self._lead_think_nl = False
         self.buf = ""
         # newlines the answer starts with are dropped: LFM2 writes one after the </think> its prompt ends on
         self.lead = self.state == "content"
@@ -2853,6 +2857,23 @@ class OutputParser:
                 else:
                     return out
             elif self.state == "reasoning":
+                if self._lead_think_open:
+                    if not self.buf:
+                        return out
+                    if self.buf.startswith("<think>"):
+                        self.buf = self.buf[len("<think>"):]
+                        self._lead_think_open = False
+                        self._lead_think_nl = True
+                    elif "<think>".startswith(self.buf):
+                        return out
+                    else:
+                        self._lead_think_open = False
+                if self._lead_think_nl:
+                    stripped = self.buf.lstrip("\n")
+                    if not stripped:
+                        self.buf = ""
+                        return out
+                    self.buf, self._lead_think_nl = stripped, False
                 if self.pending:
                     # calls wait for what follows: more calls or whitespace keep them, `</think>` makes them acts,
                     # any other text means they were quoted

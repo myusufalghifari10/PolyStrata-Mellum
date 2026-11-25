@@ -1,4 +1,56 @@
-<h1 align="center">PolyStrata</h1>
+<h1 align="center">PolyStrata-Mellum</h1>
+
+<p align="center"><b>PolyStrata fork adding JetBrains Mellum2.1-12B-A2.5B-Thinking-MTP support to <code>strata-poly</code></b><br>
+Forked from <a href="https://github.com/VecSzn/PolyStrata">VecSzn/PolyStrata</a> (built on <a href="https://github.com/Niko1221/Strata">Niko1221/Strata</a>)</p>
+
+## Mellum2.1-12B-A2.5B-Thinking-MTP Support
+
+This fork adds native CUDA `strata-poly` and OpenAI server/tokenizer support for **JetBrains/Mellum2.1-12B-A2.5B-Thinking-MTP** (architecture `mellum`):
+
+- **Engine (`engine/src/poly/mellum.{hpp,cpp}`, `engine.cpp`, `strata_poly.cmake`):** 28 all-sparse MoE layers (64 routed experts, 8 active, softmax top-k routing with `norm_topk_prob`, SwiGLU, no shared expert), GQA (32Q / 4KV, `head_dim=128`) with per-head QK-RMSNorm, 3:1 sliding-window (`window=1024`, plain NeoX RoPE) + full-attention (`YaRN` NeoX RoPE, `factor=16`, `131072` context), `--kv fp16` and `--kv q8_0` KV caches, and embedded **MTP NextN** speculative decoding (`blk.28`).
+- **Tokenizer & Serve (`terminal/`):** `mellum2` single-digit pre-tokenizer (`strata_tokenizer.py`), `mellum` registration in `models.py` / `strata_inspect.py` / `setup.py`, clean streaming `<think>` stripping in `JsonOutputParser` (`frontend.py`), and unit tests (`terminal/serve/test_mellum.py`).
+
+### Verified on RTX 5060 8GB (Q4_0 GGUF + embedded MTP `blk.28`, 7.15 GB)
+
+| Check | Result |
+| --- | --- |
+| Greedy parity vs `llama.cpp` (`--no-draft`, `STRATA_FREEZE_EXPERTS=1`) | 32/32 exact token-ID match on math & coding prompts |
+| Long-context (>1024 SWA window, 2,049-token needle @ pos 16) | Exact retrieval (`739184`), **5,089 tok/s** prefill, **177.2 tok/s** decode |
+| `--kv q8_0` (`544 bytes/row`) | 64/64 exact match vs `fp16`, +18 more experts in VRAM, **177.8 tok/s** decode |
+| MTP NextN (`blk.28`) | 64/64 lossless under `--no-gpu-experts` / `--window 1`, **66.7%-79.5%** draft acceptance |
+| OpenAI HTTP `/v1/chat/completions` & `strata_bench.py` | **187.6 tok/s** chat decode (peak **204.3 tok/s**), **4,901 tok/s** 4K prefill, clean `reasoning_content` |
+
+> **8 GB VRAM note:** On `Q4_0` (7.15 GB), `blk.28` (~200 MB) competes with trunk experts for 8 GB VRAM (~86% vs ~90% VRAM expert hit rate), so MTP ON beats `--no-draft --lookup 0` (+10-11% on coding prompts) while trailing zero-VRAM `--lookup 3` slightly until lower-bit custom quantizations bring all 1,856 experts into VRAM.
+
+### Build & Run (Linux CUDA)
+
+```bash
+# 1. Build strata-poly (example: RTX 5060 sm_120)
+cmake -S engine -B engine/build/cuda-sm120 -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DSTRATA_ENABLE_CUDA=ON \
+  -DCMAKE_CUDA_ARCHITECTURES=120-real \
+  -DSTRATA_BUILD_TESTS=ON \
+  -DSTRATA_NATIVE_EXPERTS=ON
+cmake --build engine/build/cuda-sm120 --target strata-poly
+
+# 2. Extract tokenizer from Mellum GGUF
+python3 terminal/tools/strata_tokenizer.py \
+  --gguf /path/to/Mellum2.1-12B-A2.5B-Thinking-MTP-Q4_0.gguf \
+  --out /tmp/mellum_tok --check
+
+# 3. Run direct CLI inference
+./engine/build/cuda-sm120/strata-poly \
+  --model /path/to/Mellum2.1-12B-A2.5B-Thinking-MTP-Q4_0.gguf \
+  --kv q8_0 --max-context 8192 --tokens 27,1397,233,2821,359,255,52,523,255,52,65,28,233,27,8091,233 --max-new 64
+
+# 4. Run Mellum unit tests
+python3 -m unittest terminal/serve/test_mellum.py terminal/tools/test_setup_menu.py
+```
+
+---
+
+<h2 align="center">Upstream PolyStrata README</h2>
 
 **English** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · [Español](README.es.md) · [Português](README.pt-BR.md) · [Türkçe](README.tr.md)
 

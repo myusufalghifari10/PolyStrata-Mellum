@@ -32,6 +32,7 @@ BACKENDS = {
     "deepseek4": "deepseek4",
     "lfm2moe": "lfm2moe",
     "flint": "flint",
+    "mellum": "mellum",
     "kolibri1": "kolibri1",
     "laguna": "laguna",
     "inkling2_loop": "inkling2_loop",

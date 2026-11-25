@@ -146,6 +146,10 @@ QWEN2_PATTERN = (
 # and its runs of newlines first, and each of those by Qwen 2's pattern.
 LAGUNA_SEQUENCE = (r"[^\n]+|[\n]+", QWEN2_PATTERN)
 
+# The `mellum2` pre-tokenizer (JetBrains' Mellum 2.1), llama.cpp's LLAMA_VOCAB_PRE_TYPE_MELLUM2: individual digits
+# first, then GPT-2's pattern (no \p{M}, standard English contractions).
+MELLUM2_SEQUENCE = (r"\p{N}", r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)")
+
 # The `inkling2` pre-tokenizer (Thinking Machines' Inkling 2), llama.cpp's LLAMA_VOCAB_PRE_TYPE_GPT4O: a word with
 # its capitals first or its small letters first, an English contraction kept on it, digits three at a time.
 GPT4O_PATTERN = (
@@ -162,7 +166,7 @@ PRE_PATTERNS = {"glm4": GLM4_PATTERN, "glm5": GLM4_PATTERN,   # every other name
                 "gemma4": GEMMA4_PATTERN, "lfm2": GLM4_PATTERN, "kolibri1": QWEN2_PATTERN,
                 "qwen2": QWEN2_PATTERN, "inkling2": GPT4O_PATTERN}
 PRE_SEQUENCES = {"joyai-llm": DEEPSEEK3_SEQUENCE, "deepseek-v3": DEEPSEEK3_SEQUENCE, "flint": FLINT_SEQUENCE,
-                 "laguna": LAGUNA_SEQUENCE}
+                 "laguna": LAGUNA_SEQUENCE, "mellum2": MELLUM2_SEQUENCE}
 IGNORE_MERGES = ("glm4", "glm5", "lfm2")
 RAW = ("gemma4",)                      # vocabularies of UTF-8 pieces
 MODELS = {"gpt2": None, "gemma4": "gemma4"}   # tokenizer.ggml.model -> the pre-tokenizer it implies, if any

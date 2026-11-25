@@ -4370,8 +4370,8 @@ def sha256_matches(s: Path, size: int, sha: str) -> bool:
 # general.architecture of each strata-poly family's GGUFs, the name Engine::open() (src/poly/engine.cpp) picks its
 # code by; the families not listed are qwen35moe
 POLY_GGUF_ARCHS = {"glm": ("glm5-next", "glm5next"), "deepseek": ("deepseek4",), "lfm25": ("lfm2moe",),
-                   "gemma4": ("gemma4",), "flint": ("flint",), "kolibri": ("kolibri1",), "clover": ("clover_moe",),
-                   "inkling": ("inkling2_loop",)}
+                   "gemma4": ("gemma4",), "flint": ("flint",), "mellum": ("mellum",), "kolibri": ("kolibri1",),
+                   "clover": ("clover_moe",), "inkling": ("inkling2_loop",)}
 
 
 def gguf_arch(s: Path) -> str:
